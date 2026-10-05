@@ -1,0 +1,24 @@
+{
+  "name": "wisp-windows",
+  "version": "0.1.0",
+  "description": "Wisp Windows Desktop Companion (System Tray + Popup)",
+  "main": "src/main/index.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder"
+  },
+  "keywords": [
+    "wisp",
+    "assistant",
+    "productivity",
+    "tray"
+  ],
+  "author": "Wisp Team",
+  "license": "MIT",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0"
+  },
+  "devDependencies": {
+    "electron": "^29.1.0"
+  }
+}
