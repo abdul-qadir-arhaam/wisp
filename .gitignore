@@ -13,6 +13,8 @@ yarn-error.log*
 dist/
 out/
 .next/
+.temp/
+supabase/.temp/
 
 # Android / Gradle
 .gradle/

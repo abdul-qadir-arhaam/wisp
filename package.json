@@ -1,0 +1,12 @@
+{
+  "name": "wisp-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Wisp Monorepo - Voice-First Personal Assistant",
+  "scripts": {
+    "test:backend": "node supabase/test-backend.js"
+  },
+  "devDependencies": {
+    "@supabase/supabase-js": "^2.39.0"
+  }
+}
