@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/wisp_background">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <!-- 1. Top Header Bar -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:paddingHorizontal="20dp">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="✦"
+                    android:textColor="@color/wisp_accent"
+                    android:textSize="20sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text="Wisp"
+                    android:textColor="@color/wisp_text_primary"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/tvSyncStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="12dp"
+                    android:background="#207FE7D6"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="3dp"
+                    android:text="Synced ✓"
+                    android:textColor="@color/wisp_accent"
+                    android:textSize="11sp" />
+
+                <!-- Account / Logout Icon -->
+                <FrameLayout
+                    android:id="@+id/btnAccount"
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:background="@drawable/bg_orb_compact"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <TextView
+                        android:id="@+id/tvAccountInitial"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:text="👤"
+                        android:textSize="16sp" />
+                </FrameLayout>
+            </LinearLayout>
+        </RelativeLayout>
+
+        <!-- 2. Primary Tabs: Tasks vs Completed Archive -->
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/tabLayoutPrimary"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:layout_marginHorizontal="20dp"
+            android:background="@drawable/bg_glass_item"
+            app:tabIndicatorColor="@color/wisp_accent"
+            app:tabIndicatorHeight="3dp"
+            app:tabRippleColor="#207FE7D6"
+            app:tabSelectedTextColor="@color/wisp_accent"
+            app:tabTextColor="@color/wisp_text_secondary">
+
+            <com.google.android.material.tabs.TabItem
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Tasks" />
+
+            <com.google.android.material.tabs.TabItem
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Completed" />
+        </com.google.android.material.tabs.TabLayout>
+
+        <!-- 3. Filter Controls: Priority | Oldest | Newest (Tasks tab only) -->
+        <LinearLayout
+            android:id="@+id/layoutFilterBar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:orientation="horizontal"
+            android:paddingHorizontal="20dp">
+
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/chipGroupFilters"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:selectionRequired="true"
+                app:singleSelection="true">
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipPriority"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true"
+                    android:text="Priority"
+                    android:textColor="@color/wisp_text_primary"
+                    app:chipBackgroundColor="@color/wisp_surface"
+                    app:chipStrokeColor="@color/wisp_border" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipOldest"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Oldest First"
+                    android:textColor="@color/wisp_text_primary"
+                    app:chipBackgroundColor="@color/wisp_surface"
+                    app:chipStrokeColor="@color/wisp_border" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipNewest"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Newest First"
+                    android:textColor="@color/wisp_text_primary"
+                    app:chipBackgroundColor="@color/wisp_surface"
+                    app:chipStrokeColor="@color/wisp_border" />
+            </com.google.android.material.chip.ChipGroup>
+        </LinearLayout>
+
+        <!-- 4. Main Tasks RecyclerView & Empty State -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+
+            <!-- Active & Recent Tasks List -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvTasks"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:paddingTop="8dp"
+                android:paddingBottom="90dp"
+                android:visibility="visible" />
+
+            <!-- Permanent Completed Archive List -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvArchive"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:paddingTop="8dp"
+                android:paddingBottom="90dp"
+                android:visibility="gone" />
+
+            <!-- Empty State View -->
+            <LinearLayout
+                android:id="@+id/layoutEmptyState"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="✦"
+                    android:textColor="@color/wisp_accent_muted"
+                    android:textSize="36sp" />
+
+                <TextView
+                    android:id="@+id/tvEmptyTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="No tasks right now"
+                    android:textColor="@color/wisp_text_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvEmptySubtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Speak or type a thought below"
+                    android:textColor="@color/wisp_text_secondary"
+                    android:textSize="13sp" />
+            </LinearLayout>
+        </FrameLayout>
+
+        <!-- 5. Bottom Fallback Typed Input Bar -->
+        <LinearLayout
+            android:id="@+id/layoutBottomInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/wisp_surface"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="10dp">
+
+            <EditText
+                android:id="@+id/etCaptureInput"
+                android:layout_width="0dp"
+                android:layout_height="46dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_input_field"
+                android:hint="Type a task with optional deadline..."
+                android:imeOptions="actionDone"
+                android:inputType="textCapSentences"
+                android:paddingHorizontal="14dp"
+                android:textColor="@color/wisp_text_primary"
+                android:textColorHint="@color/wisp_text_secondary"
+                android:textSize="13.5sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSendInput"
+                android:layout_width="wrap_content"
+                android:layout_height="46dp"
+                android:layout_marginStart="8dp"
+                android:backgroundTint="@color/wisp_accent"
+                android:text="Add"
+                android:textColor="@color/wisp_background"
+                android:textStyle="bold"
+                app:cornerRadius="10dp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- 6. Floating Action Button: Push-to-Talk Mic -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabVoice"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="76dp"
+        android:contentDescription="Voice Capture"
+        android:src="@android:drawable/ic_btn_speak_now"
+        app:backgroundTint="@color/wisp_accent"
+        app:elevation="6dp"
+        app:tint="@color/wisp_background" />
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -64,6 +64,35 @@ object SupabaseManager {
     }
 
     /**
+     * Register a new user with Email and Password
+     */
+    suspend fun signUp(email: String, password: String): Result<String> = withContext(Dispatchers.IO) {
+        try {
+            client.auth.signUpWith(Email) {
+                this.email = email
+                this.password = password
+            }
+            val userId = client.auth.currentUserOrNull()?.id
+                ?: return@withContext Result.failure(Exception("Registration succeeded but User ID was null"))
+            Result.success(userId)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Sign out current user
+     */
+    suspend fun signOut(): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            client.auth.signOut()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
      * Insert a new task/note item into Supabase `items` table
      */
     suspend fun insertItem(item: Item): Result<Item> = withContext(Dispatchers.IO) {
@@ -88,6 +117,24 @@ object SupabaseManager {
                 .select()
                 .decodeList<Item>()
             Result.success(list)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Updates completion state of a task item
+     */
+    suspend fun updateItemCompletion(itemId: String, completed: Boolean, completedAt: String?): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            client.postgrest["items"]
+                .update({
+                    set("completed", completed)
+                    set("completed_at", completedAt)
+                }) {
+                    filter { eq("id", itemId) }
+                }
+            Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
         }
