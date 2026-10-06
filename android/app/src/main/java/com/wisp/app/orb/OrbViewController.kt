@@ -94,10 +94,13 @@ class OrbViewController(
             transitionTo(OrbState.IDLE)
         }
 
-        // Screen Time Button (Stub for Phase 6)
+        // Screen Time Button (Phase 6)
         binding.btnScreenTime.setOnClickListener {
-            binding.tvOrbVoiceFeedback.visibility = View.VISIBLE
-            binding.tvOrbVoiceFeedback.text = "Screen Time dashboard will be unlocked in Phase 6"
+            val intent = Intent(context, com.wisp.app.screentime.ScreenTimeActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            }
+            context.startActivity(intent)
+            transitionTo(OrbState.IDLE)
         }
     }
 

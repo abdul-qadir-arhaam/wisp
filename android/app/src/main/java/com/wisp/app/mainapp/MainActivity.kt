@@ -396,6 +396,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupAccountMenu() {
+        // Screen Time Dashboard Navigation (Phase 6)
+        binding.btnScreenTime.setOnClickListener {
+            val intent = Intent(this, com.wisp.app.screentime.ScreenTimeActivity::class.java)
+            startActivity(intent)
+        }
+
         binding.btnAccount.setOnClickListener { v ->
             val popup = PopupMenu(this, v)
             val userEmail = SupabaseManager.client.auth.currentUserOrNull()?.email ?: "Account"
