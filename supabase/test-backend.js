@@ -88,10 +88,11 @@ async function provisionAdminUser(adminClient, email, password) {
     return createData.user;
   }
 
-  // If user already exists, update their password and confirm them
-  if (createErr && createErr.message.includes('already registered')) {
-    const { data: listData } = await adminClient.auth.admin.listUsers();
-    const existing = listData?.users?.find(u => u.email === email);
+  // If user creation failed (e.g. already registered), find existing user and ensure confirmed & updated
+  if (createErr) {
+    const listResult = await adminClient.auth.admin.listUsers();
+    const users = listResult?.data?.users || [];
+    const existing = users.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
     if (existing) {
       const { data: updateData, error: updateErr } = await adminClient.auth.admin.updateUserById(
         existing.id,
@@ -102,7 +103,7 @@ async function provisionAdminUser(adminClient, email, password) {
     }
   }
 
-  throw new Error(`Admin create user failed: ${createErr.message}`);
+  throw new Error(`Admin create user failed: ${createErr?.message}`);
 }
 
 async function getOrAuthUser(client, email, password, label, adminClient) {

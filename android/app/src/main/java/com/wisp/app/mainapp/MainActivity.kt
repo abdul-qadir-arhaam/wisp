@@ -292,6 +292,10 @@ class MainActivity : AppCompatActivity() {
             result.onSuccess { saved ->
                 allItems.add(0, saved)
                 updateTaskLists()
+                // Schedule local alarms for dated items (Phase 5)
+                if (saved.dueAt != null) {
+                    com.wisp.app.notifications.TaskAlarmScheduler(this@MainActivity).scheduleTaskReminders(saved)
+                }
                 if (isVoice) {
                     ttsManager?.speakConfirmation("Got it, saved")
                 } else {
@@ -315,6 +319,11 @@ class MainActivity : AppCompatActivity() {
                     allItems[index] = item.copy(completed = completed, completedAt = completedAt)
                     updateTaskLists()
                     updateArchiveList()
+                }
+                // Cancel active notifications & alarms when item is completed (Phase 5)
+                if (completed) {
+                    com.wisp.app.notifications.TaskAlarmScheduler(this@MainActivity).cancelTaskReminders(itemId)
+                    com.wisp.app.notifications.WispNotificationManager(this@MainActivity).cancelReminder(itemId)
                 }
             }.onFailure { err ->
                 Toast.makeText(this@MainActivity, "Update error: ${err.message}", Toast.LENGTH_SHORT).show()
