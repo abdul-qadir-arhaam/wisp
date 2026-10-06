@@ -54,11 +54,64 @@ class Phase2TestActivity : AppCompatActivity() {
         ttsManager = TtsManager(this)
 
         setupAuthUI()
+        setupOrbControls()
         setupCaptureUI()
 
         // Check initial auth state
         if (SupabaseManager.isAuthenticated) {
             onUserAuthenticated(SupabaseManager.currentUserId ?: "")
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        updateOverlayPermissionUI()
+    }
+
+    private var isOrbRunning: Boolean = false
+
+    private fun setupOrbControls() {
+        updateOverlayPermissionUI()
+
+        binding.btnRequestOverlayPerm.setOnClickListener {
+            val intent = com.wisp.app.orb.OrbPermissionHelper.createOverlayPermissionIntent(this)
+            startActivity(intent)
+        }
+
+        binding.btnToggleOrb.setOnClickListener {
+            if (!com.wisp.app.orb.OrbPermissionHelper.hasOverlayPermission(this)) {
+                Toast.makeText(this, "Please grant overlay permission first", Toast.LENGTH_SHORT).show()
+                val intent = com.wisp.app.orb.OrbPermissionHelper.createOverlayPermissionIntent(this)
+                startActivity(intent)
+                return@setOnClickListener
+            }
+
+            if (!isOrbRunning) {
+                com.wisp.app.orb.OrbService.start(this)
+                isOrbRunning = true
+                binding.btnToggleOrb.text = "Stop Floating Orb"
+                binding.btnToggleOrb.backgroundTintList = ContextCompat.getColorStateList(this, com.wisp.app.R.color.wisp_warning)
+                appendLog("✓ Floating Orb Service started (Idle glowing state active)")
+            } else {
+                com.wisp.app.orb.OrbService.stop(this)
+                isOrbRunning = false
+                binding.btnToggleOrb.text = "Start Floating Orb"
+                binding.btnToggleOrb.backgroundTintList = ContextCompat.getColorStateList(this, com.wisp.app.R.color.wisp_accent)
+                appendLog("✓ Floating Orb Service stopped")
+            }
+        }
+    }
+
+    private fun updateOverlayPermissionUI() {
+        val hasPerm = com.wisp.app.orb.OrbPermissionHelper.hasOverlayPermission(this)
+        if (hasPerm) {
+            binding.tvOverlayPermissionStatus.text = "Overlay Permission: Granted ✓"
+            binding.tvOverlayPermissionStatus.setTextColor(ContextCompat.getColor(this, com.wisp.app.R.color.wisp_success))
+            binding.btnRequestOverlayPerm.visibility = android.view.View.GONE
+        } else {
+            binding.tvOverlayPermissionStatus.text = "Overlay Permission: Required (SYSTEM_ALERT_WINDOW)"
+            binding.tvOverlayPermissionStatus.setTextColor(ContextCompat.getColor(this, com.wisp.app.R.color.wisp_warning))
+            binding.btnRequestOverlayPerm.visibility = android.view.View.VISIBLE
         }
     }
 

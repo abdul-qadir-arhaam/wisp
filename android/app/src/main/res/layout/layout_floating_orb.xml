@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/orbRoot"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content">
+
+    <!-- 1. IDLE STATE: Floating glowing sphere -->
+    <FrameLayout
+        android:id="@+id/layoutIdleOrb"
+        android:layout_width="58dp"
+        android:layout_height="58dp"
+        android:background="@drawable/bg_orb_idle"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="visible">
+
+        <View
+            android:id="@+id/orbPulseGlow"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/bg_orb_idle"
+            android:alpha="0.6" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="✦"
+            android:textColor="@color/wisp_accent"
+            android:textSize="20sp" />
+    </FrameLayout>
+
+    <!-- 2. COMPACT / LISTENING STATE: Morphing capsule -->
+    <LinearLayout
+        android:id="@+id/layoutCompact"
+        android:layout_width="150dp"
+        android:layout_height="52dp"
+        android:background="@drawable/bg_orb_compact"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="14dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/compactMicIcon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🎤"
+            android:textSize="18sp" />
+
+        <TextView
+            android:id="@+id/compactListeningText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="Listening..."
+            android:textColor="@color/wisp_accent"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- 3. EXPANDED STATE: Glassmorphism Snapshot Panel -->
+    <LinearLayout
+        android:id="@+id/layoutExpanded"
+        android:layout_width="320dp"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_glass_panel"
+        android:elevation="12dp"
+        android:orientation="vertical"
+        android:padding="18dp"
+        android:visibility="gone">
+
+        <!-- Top Header & Collapse Handle -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:text="Wisp Snapshot"
+                android:textColor="@color/wisp_text_primary"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/btnCollapse"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:padding="6dp"
+                android:text="✕"
+                android:textColor="@color/wisp_text_secondary"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </RelativeLayout>
+
+        <!-- Snapshot Tasks List Container -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="Upcoming"
+            android:textColor="@color/wisp_text_secondary"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:id="@+id/snapshotTasksContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:orientation="vertical">
+
+            <!-- Dynamic task rows are populated here -->
+            <TextView
+                android:id="@+id/tvSnapshotEmptyState"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingVertical="12dp"
+                android:text="No upcoming tasks"
+                android:textColor="@color/wisp_text_secondary"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <!-- Primary Action: Push-to-Talk Mic Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnOrbMic"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="14dp"
+            android:backgroundTint="@color/wisp_accent"
+            android:text="🎤 Tap to Speak"
+            android:textColor="@color/wisp_background"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            app:cornerRadius="14dp" />
+
+        <!-- Speech recognition transcript feedback -->
+        <TextView
+            android:id="@+id/tvOrbVoiceFeedback"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:gravity="center"
+            android:text=""
+            android:textColor="@color/wisp_accent"
+            android:textSize="12sp"
+            android:visibility="gone" />
+
+        <!-- Secondary Action Buttons: Screen Time & Open App -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnScreenTime"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="42dp"
+                android:layout_marginEnd="6dp"
+                android:layout_weight="1"
+                android:text="Screen Time"
+                android:textColor="@color/wisp_text_primary"
+                android:textSize="12sp"
+                app:cornerRadius="10dp"
+                app:strokeColor="@color/wisp_border" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnOpenMainApp"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="42dp"
+                android:layout_marginStart="6dp"
+                android:layout_weight="1"
+                android:text="Open App"
+                android:textColor="@color/wisp_accent"
+                android:textSize="12sp"
+                app:cornerRadius="10dp"
+                app:strokeColor="@color/wisp_accent" />
+        </LinearLayout>
+    </LinearLayout>
+
+</FrameLayout>
