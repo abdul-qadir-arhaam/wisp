@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark-first calm palette from DESIGN.md Section 3 -->
+    <color name="wisp_background">#0D0F12</color>
+    <color name="wisp_surface">#161920</color>
+    <color name="wisp_surface_card">#1E222B</color>
+    <color name="wisp_accent">#7FE7D6</color>
+    <color name="wisp_accent_muted">#4EA89A</color>
+    <color name="wisp_text_primary">#F2F2F5</color>
+    <color name="wisp_text_secondary">#9A9CA5</color>
+    <color name="wisp_border">#2A2E39</color>
+    <color name="wisp_success">#55C583</color>
+    <color name="wisp_warning">#E06C75</color>
+</resources>

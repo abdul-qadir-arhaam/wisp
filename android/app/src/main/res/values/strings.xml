@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">Wisp</string>
+    <string name="login_title">Wisp Login (Phase 2 Test)</string>
+    <string name="email_hint">Email address</string>
+    <string name="password_hint">Password</string>
+    <string name="btn_login">Sign In</string>
+    <string name="btn_speak">Press &amp; Hold to Speak</string>
+    <string name="btn_send_typed">Send Typed Input</string>
+    <string name="realtime_logs_title">Realtime Sync Listener Output:</string>
+    <string name="status_connected">Connected to Supabase Realtime</string>
+    <string name="status_disconnected">Disconnected</string>
+</resources>

@@ -4,7 +4,8 @@
   "private": true,
   "description": "Wisp Monorepo - Voice-First Personal Assistant",
   "scripts": {
-    "test:backend": "node supabase/test-backend.js"
+    "test:backend": "node supabase/test-backend.js",
+    "test:phase2": "node android/test-phase2-loop.js"
   },
   "devDependencies": {
     "@supabase/supabase-js": "^2.39.0"

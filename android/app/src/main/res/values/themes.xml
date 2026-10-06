@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Wisp" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="android:windowBackground">@color/wisp_background</item>
+        <item name="colorPrimary">@color/wisp_accent</item>
+        <item name="colorSecondary">@color/wisp_accent_muted</item>
+        <item name="android:textColorPrimary">@color/wisp_text_primary</item>
+        <item name="android:textColorSecondary">@color/wisp_text_secondary</item>
+    </style>
+</resources>
