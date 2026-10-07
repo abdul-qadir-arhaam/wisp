@@ -27,9 +27,18 @@ class OrbPositionPreferences(context: Context) {
             .apply()
     }
 
+    fun isOrbEnabled(): Boolean {
+        return prefs.getBoolean(KEY_ENABLED, false)
+    }
+
+    fun setOrbEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_ENABLED, enabled).apply()
+    }
+
     companion object {
         private const val PREFS_NAME = "wisp_orb_position_prefs"
         private const val KEY_X = "orb_last_x"
         private const val KEY_Y = "orb_last_y"
+        private const val KEY_ENABLED = "orb_enabled"
     }
 }

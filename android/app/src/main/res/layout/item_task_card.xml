@@ -126,5 +126,20 @@
             android:textSize="12sp"
             android:visibility="gone" />
 
+        <!-- Delete Action (only visible when struck through/completed) -->
+        <TextView
+            android:id="@+id/btnDelete"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="2dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:padding="8dp"
+            android:text="Delete"
+            android:textColor="@color/wisp_warning"
+            android:textSize="12sp"
+            android:visibility="gone" />
+
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

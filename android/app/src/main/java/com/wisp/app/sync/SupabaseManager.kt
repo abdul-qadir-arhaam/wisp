@@ -11,6 +11,8 @@ import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.realtime.Realtime
 import io.github.jan.supabase.realtime.RealtimeChannel
 import io.github.jan.supabase.realtime.channel
+import io.github.jan.supabase.realtime.decodeOldRecord
+import io.github.jan.supabase.realtime.decodeRecord
 import io.github.jan.supabase.realtime.postgresChangeFlow
 import io.github.jan.supabase.realtime.realtime
 import kotlinx.coroutines.CoroutineScope
@@ -49,7 +51,7 @@ object SupabaseManager {
     /**
      * Authenticate user with Email and Password
      */
-    async suspend fun signIn(email: String, password: String): Result<String> = withContext(Dispatchers.IO) {
+    suspend fun signIn(email: String, password: String): Result<String> = withContext(Dispatchers.IO) {
         try {
             client.auth.signInWith(Email) {
                 this.email = email
@@ -132,6 +134,21 @@ object SupabaseManager {
                     set("completed", completed)
                     set("completed_at", completedAt)
                 }) {
+                    filter { eq("id", itemId) }
+                }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Deletes a task item by ID
+     */
+    suspend fun deleteItem(itemId: String): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            client.postgrest["items"]
+                .delete {
                     filter { eq("id", itemId) }
                 }
             Result.success(Unit)

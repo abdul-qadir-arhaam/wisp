@@ -14,7 +14,8 @@ import com.wisp.app.sync.Item
  * Reference: PRD.md Section 6.1.5
  */
 class CompletedArchiveAdapter(
-    private val onRestore: (Item) -> Unit
+    private val onRestore: (Item) -> Unit,
+    private val onDelete: (Item) -> Unit
 ) : ListAdapter<Item, CompletedArchiveAdapter.ArchiveViewHolder>(DiffCallback) {
 
     companion object {
@@ -49,6 +50,9 @@ class CompletedArchiveAdapter(
 
             binding.btnArchiveRestore.setOnClickListener {
                 onRestore(item)
+            }
+            binding.btnArchiveDelete.setOnClickListener {
+                onDelete(item)
             }
         }
     }

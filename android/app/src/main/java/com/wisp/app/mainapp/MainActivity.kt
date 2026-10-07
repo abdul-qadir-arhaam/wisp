@@ -17,8 +17,12 @@ import com.google.android.material.tabs.TabLayout
 import com.wisp.app.R
 import com.wisp.app.auth.LoginActivity
 import com.wisp.app.databinding.ActivityMainBinding
+import com.wisp.app.orb.OrbPermissionHelper
+import com.wisp.app.orb.OrbPositionPreferences
+import com.wisp.app.orb.OrbService
 import com.wisp.app.sync.Item
 import com.wisp.app.sync.SupabaseManager
+import io.github.jan.supabase.gotrue.auth
 import com.wisp.app.voice.DateParser
 import com.wisp.app.voice.TtsManager
 import com.wisp.app.voice.VoiceCaptureManager
@@ -72,6 +76,7 @@ class MainActivity : AppCompatActivity() {
         setupTabsAndFilters()
         setupInputs()
         setupAccountMenu()
+        setupOrbControls()
 
         // Load saved view preference and items
         val userId = SupabaseManager.currentUserId ?: ""
@@ -90,6 +95,9 @@ class MainActivity : AppCompatActivity() {
             },
             onUndo = { item ->
                 markItemCompleted(item, false)
+            },
+            onDelete = { item ->
+                confirmDeleteItem(item)
             }
         )
         binding.rvTasks.layoutManager = LinearLayoutManager(this)
@@ -98,6 +106,9 @@ class MainActivity : AppCompatActivity() {
         archiveAdapter = CompletedArchiveAdapter(
             onRestore = { item ->
                 markItemCompleted(item, false)
+            },
+            onDelete = { item ->
+                confirmDeleteItem(item)
             }
         )
         binding.rvArchive.layoutManager = LinearLayoutManager(this)
@@ -331,6 +342,36 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun confirmDeleteItem(item: Item) {
+        AlertDialog.Builder(this)
+            .setTitle("Delete Task")
+            .setMessage("Are you sure you want to delete \"${item.content}\"?")
+            .setPositiveButton("Delete") { _, _ ->
+                deleteItem(item)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun deleteItem(item: Item) {
+        val itemId = item.id ?: return
+
+        lifecycleScope.launch {
+            val result = SupabaseManager.deleteItem(itemId)
+            result.onSuccess {
+                allItems.removeAll { it.id == itemId }
+                updateTaskLists()
+                updateArchiveList()
+                // Cancel active notifications & alarms when item is deleted (Phase 5)
+                com.wisp.app.notifications.TaskAlarmScheduler(this@MainActivity).cancelTaskReminders(itemId)
+                com.wisp.app.notifications.WispNotificationManager(this@MainActivity).cancelReminder(itemId)
+                Toast.makeText(this@MainActivity, "Deleted: \"${item.content}\"", Toast.LENGTH_SHORT).show()
+            }.onFailure { err ->
+                Toast.makeText(this@MainActivity, "Delete error: ${err.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     private fun fetchItems() {
         lifecycleScope.launch {
             val result = SupabaseManager.getItems()
@@ -417,6 +458,56 @@ class MainActivity : AppCompatActivity() {
                 } else false
             }
             popup.show()
+        }
+    }
+
+    private fun setupOrbControls() {
+        val orbPrefs = OrbPositionPreferences(this)
+        updateOrbIcon(orbPrefs.isOrbEnabled() && OrbService.isRunning)
+
+        binding.btnToggleOrb.setOnClickListener {
+            if (!OrbPermissionHelper.hasOverlayPermission(this)) {
+                orbPrefs.setOrbEnabled(true)
+                Toast.makeText(this, "Please enable 'Display over other apps' to use the floating Orb", Toast.LENGTH_LONG).show()
+                val intent = OrbPermissionHelper.createOverlayPermissionIntent(this)
+                startActivity(intent)
+            } else {
+                try {
+                    val currentlyRunning = OrbService.isRunning
+                    if (currentlyRunning) {
+                        OrbService.stop(this)
+                        orbPrefs.setOrbEnabled(false)
+                        updateOrbIcon(false)
+                        Toast.makeText(this, "Wisp Floating Orb hidden", Toast.LENGTH_SHORT).show()
+                    } else {
+                        OrbService.start(this)
+                        orbPrefs.setOrbEnabled(true)
+                        updateOrbIcon(true)
+                        Toast.makeText(this, "Wisp Floating Orb is active!", Toast.LENGTH_SHORT).show()
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.e("MainActivity", "Failed to toggle orb", e)
+                    Toast.makeText(this, "Error toggling Orb: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    private fun updateOrbIcon(active: Boolean) {
+        binding.tvOrbIcon.alpha = if (active) 1.0f else 0.5f
+    }
+
+    override fun onResume() {
+        super.onResume()
+        try {
+            val orbPrefs = OrbPositionPreferences(this)
+            updateOrbIcon(orbPrefs.isOrbEnabled() && OrbService.isRunning)
+            if (orbPrefs.isOrbEnabled() && OrbPermissionHelper.hasOverlayPermission(this) && !OrbService.isRunning) {
+                OrbService.start(this)
+                updateOrbIcon(true)
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "Error verifying OrbService in onResume", e)
         }
     }
 

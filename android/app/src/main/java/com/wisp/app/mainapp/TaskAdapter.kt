@@ -21,7 +21,8 @@ import com.wisp.app.sync.Item
  */
 class TaskAdapter(
     private val onCompleteConfirmed: (Item) -> Unit,
-    private val onUndo: (Item) -> Unit
+    private val onUndo: (Item) -> Unit,
+    private val onDelete: (Item) -> Unit
 ) : ListAdapter<Item, TaskAdapter.TaskViewHolder>(DiffCallback) {
 
     // Tracks item IDs currently in the "confirming" (first click) state
@@ -77,9 +78,13 @@ class TaskAdapter(
                 binding.tvOverdueBadge.visibility = View.GONE
                 binding.tvDueBadge.visibility = View.GONE
                 binding.btnUndo.visibility = View.VISIBLE
+                binding.btnDelete.visibility = View.VISIBLE
 
                 binding.btnUndo.setOnClickListener {
                     onUndo(item)
+                }
+                binding.btnDelete.setOnClickListener {
+                    onDelete(item)
                 }
                 binding.btnTickbox.setOnClickListener {
                     onUndo(item)
@@ -93,6 +98,7 @@ class TaskAdapter(
                     ContextCompat.getColor(context, R.color.wisp_text_primary)
                 )
                 binding.btnUndo.visibility = View.GONE
+                binding.btnDelete.visibility = View.GONE
 
                 // Due & Overdue Badges
                 val isOverdue = FilterManager.isOverdue(item)
@@ -134,7 +140,7 @@ class TaskAdapter(
                     } else {
                         // First Click: Enter partial-fill state and start timeout timer
                         confirmingItemIds.add(itemId)
-                        notifyItemChanged(bindingAdapterPosition)
+                        notifyItemChanged(adapterPosition)
 
                         scheduleResetTimer(itemId)
                     }
@@ -146,7 +152,7 @@ class TaskAdapter(
             cancelResetTimer(itemId)
             val runnable = Runnable {
                 if (confirmingItemIds.remove(itemId)) {
-                    val pos = bindingAdapterPosition
+                    val pos = adapterPosition
                     if (pos != RecyclerView.NO_POSITION) {
                         notifyItemChanged(pos)
                     }

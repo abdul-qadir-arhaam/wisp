@@ -36,7 +36,10 @@ class OrbViewController(
     private val onStateChanged: (OrbState) -> Unit
 ) {
 
-    val binding: LayoutFloatingOrbBinding = LayoutFloatingOrbBinding.inflate(LayoutInflater.from(context))
+    // Wrap the service context in Theme.Wisp so Material3 components inflate properly without crashing
+    private val themedContext: Context = android.view.ContextThemeWrapper(context, R.style.Theme_Wisp)
+
+    val binding: LayoutFloatingOrbBinding = LayoutFloatingOrbBinding.inflate(LayoutInflater.from(themedContext))
     val rootView: View get() = binding.root
 
     var currentState: OrbState = OrbState.IDLE
@@ -87,7 +90,7 @@ class OrbViewController(
 
         // Open Main App Button
         binding.btnOpenMainApp.setOnClickListener {
-            val intent = Intent(context, Phase2TestActivity::class.java).apply {
+            val intent = Intent(context, com.wisp.app.mainapp.MainActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
             }
             context.startActivity(intent)
@@ -144,10 +147,18 @@ class OrbViewController(
                 binding.layoutCompact.visibility = View.GONE
                 binding.layoutExpanded.visibility = View.VISIBLE
 
+                // Clamp X so the 320dp expanded panel stays fully visible on screen
+                val displayMetrics = context.resources.displayMetrics
+                val screenWidth = displayMetrics.widthPixels
+                val panelWidthPx = (320 * displayMetrics.density).toInt()
+                val maxX = (screenWidth - panelWidthPx - 24).coerceAtLeast(24)
+                if (layoutParams.x > maxX) {
+                    layoutParams.x = maxX
+                }
+
                 layoutParams.width = WindowManager.LayoutParams.WRAP_CONTENT
                 layoutParams.height = WindowManager.LayoutParams.WRAP_CONTENT
-                // In expanded state, allow touches inside
-                layoutParams.flags = WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
+                layoutParams.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
                 safeUpdateLayout()
 
                 pulseAnimator?.pause()
@@ -294,9 +305,9 @@ class OrbViewController(
         val activeItems = items.filter { !it.completed }.take(4)
 
         if (activeItems.isEmpty()) {
-            val emptyTv = TextView(context).apply {
+            val emptyTv = TextView(themedContext).apply {
                 text = "No upcoming tasks. Speak or tap to add!"
-                setTextColor(context.getColor(R.color.wisp_text_secondary))
+                setTextColor(themedContext.getColor(R.color.wisp_text_secondary))
                 textSize = 13f
                 setPadding(0, 16, 0, 16)
             }
@@ -304,7 +315,7 @@ class OrbViewController(
             return
         }
 
-        val inflater = LayoutInflater.from(context)
+        val inflater = LayoutInflater.from(themedContext)
         for (item in activeItems) {
             val row = inflater.inflate(R.layout.item_orb_snapshot_task, container, false)
             val tvContent = row.findViewById<TextView>(R.id.tvTaskContent)

@@ -46,7 +46,7 @@ class OrbTouchHandler(
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouch(v: View, event: MotionEvent): Boolean {
-        when (event.action) {
+        when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 initialX = layoutParams.x
                 initialY = layoutParams.y
@@ -55,6 +55,7 @@ class OrbTouchHandler(
                 isDragging = false
                 hasFiredLongPress = false
 
+                handler.removeCallbacks(longPressRunnable)
                 handler.postDelayed(longPressRunnable, ViewConfiguration.getLongPressTimeout().toLong())
                 return true
             }
@@ -108,10 +109,10 @@ class OrbTouchHandler(
             screenWidth - viewWidth - edgePadding // Snap to right edge
         }
 
-        // Clamp Y within screen bounds
+        // Clamp Y within screen bounds safely
         val minY = 100
-        val maxY = screenSize.y - 200
-        val targetY = layoutParams.y.coerceIn(minY, maxY)
+        val safeMaxY = (screenSize.y - 200).coerceAtLeast(minY)
+        val targetY = layoutParams.y.coerceIn(minY, safeMaxY)
 
         // Animate smoothly to target position
         val startX = layoutParams.x

@@ -157,7 +157,7 @@ class ScreenTimeActivity : AppCompatActivity() {
                     topMargin = (6 * resources.displayMetrics.density).toInt()
                 }
                 text = point.formattedDate
-                textSize = 9sp
+                textSize = 9f
                 setTextColor(getColor(R.color.wisp_text_secondary))
             }
 

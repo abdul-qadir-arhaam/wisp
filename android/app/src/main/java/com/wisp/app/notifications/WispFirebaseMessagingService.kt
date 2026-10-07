@@ -3,7 +3,7 @@ package com.wisp.app.notifications
 import android.content.Context
 import android.util.Log
 import com.wisp.app.sync.SupabaseManager
-import io.github.jan_tennert.supabase.postgrest.postgrest
+import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

@@ -2,8 +2,8 @@ package com.wisp.app.screentime
 
 import android.util.Log
 import com.wisp.app.sync.SupabaseManager
-import io.github.jan_tennert.supabase.postgrest.postgrest
-import io.github.jan_tennert.supabase.postgrest.query.Columns
+import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.postgrest.query.Columns
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
@@ -30,7 +30,20 @@ class ScreenTimeRepository {
         try {
             if (stats.isEmpty()) return@withContext Result.success(Unit)
 
-            // Map stats into DB records
+            // 1. Delete prior records for this user, device, and date to avoid duplicate summing
+            try {
+                SupabaseManager.client.postgrest["screen_time_logs"].delete {
+                    filter {
+                        eq("user_id", userId)
+                        eq("device", device)
+                        eq("date", dateString)
+                    }
+                }
+            } catch (delErr: Exception) {
+                Log.w(TAG, "Note: Previous log deletion: ${delErr.message}")
+            }
+
+            // 2. Map stats into DB records
             val records = stats.map { stat ->
                 ScreenTimeRecord(
                     userId = userId,
@@ -41,7 +54,7 @@ class ScreenTimeRepository {
                 )
             }
 
-            // Insert records into screen_time_logs
+            // 3. Insert fresh records into screen_time_logs
             SupabaseManager.client.postgrest["screen_time_logs"].insert(records)
             Log.d(TAG, "Uploaded ${records.size} screen time records for $device on $dateString")
             Result.success(Unit)

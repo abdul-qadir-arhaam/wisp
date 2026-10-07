@@ -38,15 +38,39 @@ class OrbService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        startForeground(NOTIFICATION_ID, buildForegroundNotification())
+        isRunning = true
 
-        windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
-        positionPrefs = OrbPositionPreferences(this)
+        try {
+            if (Build.VERSION.SDK_INT >= 34) {
+                startForeground(
+                    NOTIFICATION_ID,
+                    buildForegroundNotification(),
+                    android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+                )
+            } else {
+                startForeground(NOTIFICATION_ID, buildForegroundNotification())
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("OrbService", "startForeground error", e)
+        }
 
-        initOverlayWindow()
+        try {
+            windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+            positionPrefs = OrbPositionPreferences(this)
+            initOverlayWindow()
+        } catch (e: Exception) {
+            android.util.Log.e("OrbService", "initOverlayWindow error", e)
+            stopSelf()
+        }
     }
 
     private fun initOverlayWindow() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !android.provider.Settings.canDrawOverlays(this)) {
+            android.util.Log.w("OrbService", "Cannot display overlay: permission not granted")
+            stopSelf()
+            return
+        }
+
         val windowType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
         } else {
@@ -63,8 +87,7 @@ class OrbService : Service() {
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             windowType,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.START
@@ -102,8 +125,15 @@ class OrbService : Service() {
         )
 
         rootView.setOnTouchListener(touchHandler)
+        viewController?.binding?.layoutIdleOrb?.setOnTouchListener(touchHandler)
 
-        windowManager.addView(rootView, layoutParams)
+        try {
+            if (!rootView.isAttachedToWindow) {
+                windowManager.addView(rootView, layoutParams)
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("OrbService", "Failed to add orb view to WindowManager", e)
+        }
     }
 
     /**
@@ -136,7 +166,9 @@ class OrbService : Service() {
             notificationManager.createNotificationChannel(channel)
         }
 
-        val launchIntent = Intent(this, Phase2TestActivity::class.java)
+        val launchIntent = Intent(this, com.wisp.app.mainapp.MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+        }
         val pendingIntent = PendingIntent.getActivity(
             this, 0, launchIntent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
@@ -153,6 +185,7 @@ class OrbService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        isRunning = true
         val action = intent?.action
         if (action == ACTION_AUTO_HIDE) {
             val hide = intent.getBooleanExtra(EXTRA_HIDE, false)
@@ -163,12 +196,17 @@ class OrbService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        isRunning = false
         serviceScope.cancel()
-        viewController?.let {
-            if (it.rootView.isAttachedToWindow) {
-                windowManager.removeView(it.rootView)
+        try {
+            viewController?.let {
+                if (it.rootView.isAttachedToWindow) {
+                    windowManager.removeView(it.rootView)
+                }
+                it.destroy()
             }
-            it.destroy()
+        } catch (e: Exception) {
+            android.util.Log.e("OrbService", "Error during onDestroy", e)
         }
         viewController = null
     }
@@ -180,18 +218,30 @@ class OrbService : Service() {
         const val ACTION_AUTO_HIDE = "com.wisp.app.orb.ACTION_AUTO_HIDE"
         const val EXTRA_HIDE = "extra_hide"
 
+        @Volatile
+        var isRunning: Boolean = false
+            private set
+
         fun start(context: Context) {
-            val intent = Intent(context, OrbService::class.java)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
+            try {
+                val intent = Intent(context, OrbService::class.java)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    context.startForegroundService(intent)
+                } else {
+                    context.startService(intent)
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("OrbService", "Failed to start OrbService", e)
             }
         }
 
         fun stop(context: Context) {
-            val intent = Intent(context, OrbService::class.java)
-            context.stopService(intent)
+            try {
+                val intent = Intent(context, OrbService::class.java)
+                context.stopService(intent)
+            } catch (e: Exception) {
+                android.util.Log.e("OrbService", "Failed to stop OrbService", e)
+            }
         }
     }
 }

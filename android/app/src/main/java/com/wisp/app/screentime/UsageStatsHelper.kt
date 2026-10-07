@@ -70,25 +70,41 @@ class UsageStatsHelper(private val context: Context) {
         val startTime = calendar.timeInMillis
         val endTime = System.currentTimeMillis()
 
-        val stats = usageStatsManager.queryUsageStats(
-            UsageStatsManager.INTERVAL_DAILY,
-            startTime,
-            endTime
-        ) ?: return emptyList()
+        // queryAndAggregateUsageStats returns a Map<String, UsageStats> keyed by packageName
+        // which prevents duplicate daily bucket summing across the same application.
+        val statsMap = usageStatsManager.queryAndAggregateUsageStats(startTime, endTime)
+        if (statsMap.isNullOrEmpty()) {
+            return emptyList()
+        }
 
+        val maxSecondsToday = ((endTime - startTime) / 1000L).coerceAtLeast(1L)
         val pm = context.packageManager
         val appDurations = mutableMapOf<String, Long>()
 
-        for (usage in stats) {
-            val totalTimeInForeground = usage.totalTimeInForeground / 1000 // Convert ms to seconds
-            if (totalTimeInForeground <= 5) continue // Skip noise / negligible durations
+        for ((packageName, usage) in statsMap) {
+            // Only count apps actively used since midnight today
+            if (usage.lastTimeUsed < startTime) continue
 
-            val packageName = usage.packageName
-            // Exclude our own app and common background system services
-            if (packageName == context.packageName || packageName == "android") continue
+            // Exclude our own app and internal Android background services / launchers
+            if (packageName == context.packageName ||
+                packageName == "android" ||
+                packageName.startsWith("com.android.systemui") ||
+                packageName.contains("inputmethod") ||
+                packageName.contains("launcher") ||
+                packageName.contains("overlay")
+            ) continue
+
+            // Convert ms to seconds and clamp to maximum possible time since midnight
+            val durationSeconds = (usage.totalTimeInForeground / 1000L).coerceIn(0L, maxSecondsToday)
+            if (durationSeconds <= 15L) continue // Filter out negligible background flickers
 
             val humanLabel = resolveAppLabel(pm, packageName)
-            appDurations[humanLabel] = (appDurations[humanLabel] ?: 0L) + totalTimeInForeground
+            // Skip generic system labels
+            if (humanLabel.equals("System UI", ignoreCase = true) || humanLabel.equals("Android System", ignoreCase = true)) {
+                continue
+            }
+
+            appDurations[humanLabel] = (appDurations[humanLabel] ?: 0L) + durationSeconds
         }
 
         val totalDuration = appDurations.values.sum().toFloat().coerceAtLeast(1f)
