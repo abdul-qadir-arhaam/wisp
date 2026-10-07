@@ -1,9 +1,11 @@
 package com.wisp.app.sync
 
+import android.content.Context
 import com.wisp.app.BuildConfig
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.gotrue.Auth
+import io.github.jan.supabase.gotrue.SessionStatus
 import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.gotrue.providers.builtin.Email
 import io.github.jan.supabase.postgrest.Postgrest
@@ -17,9 +19,11 @@ import io.github.jan.supabase.realtime.postgresChangeFlow
 import io.github.jan.supabase.realtime.realtime
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Manages Supabase Auth, Postgrest operations, and Realtime WebSocket connections.
@@ -47,6 +51,27 @@ object SupabaseManager {
 
     val isAuthenticated: Boolean
         get() = client.auth.currentSessionOrNull() != null
+
+    /**
+     * Eagerly initializes the Supabase client so session loading from disk begins immediately.
+     */
+    fun init(context: Context) {
+        // Trigger lazy init to start reading storage in background
+        client
+    }
+
+    /**
+     * Awaits completion of Supabase Auth reading the saved session from persistent storage.
+     * Prevents false logouts on cold starts or process recreation.
+     */
+    suspend fun awaitAuthReady(timeoutMs: Long = 3000L): Boolean = withContext(Dispatchers.IO) {
+        try {
+            withTimeoutOrNull(timeoutMs) {
+                client.auth.sessionStatus.first { it !is SessionStatus.LoadingFromStorage }
+            }
+        } catch (_: Exception) {}
+        isAuthenticated
+    }
 
     /**
      * Authenticate user with Email and Password

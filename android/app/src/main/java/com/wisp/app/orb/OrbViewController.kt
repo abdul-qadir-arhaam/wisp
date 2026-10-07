@@ -5,15 +5,18 @@ import android.animation.PropertyValuesHolder
 import android.animation.ValueAnimator
 import android.content.Context
 import android.content.Intent
+import android.graphics.Paint
 import android.view.LayoutInflater
 import android.view.View
 import android.view.WindowManager
 import android.view.animation.AccelerateDecelerateInterpolator
-import android.widget.LinearLayout
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
 import android.widget.TextView
 import com.wisp.app.R
 import com.wisp.app.databinding.LayoutFloatingOrbBinding
-import com.wisp.app.main.Phase2TestActivity
+import com.wisp.app.mainapp.FilterManager
+import com.wisp.app.mainapp.ViewFilter
 import com.wisp.app.sync.Item
 import com.wisp.app.sync.SupabaseManager
 import com.wisp.app.voice.DateParser
@@ -23,6 +26,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.time.Instant
 
 /**
  * Controls the Orb view hierarchy, animations, state transitions, and voice/data bindings.
@@ -79,7 +83,26 @@ class OrbViewController(
             transitionTo(OrbState.IDLE)
         }
 
-        // Mic Button in Expanded View
+        // Quick Add Task Button
+        binding.btnOrbAddTask.setOnClickListener {
+            val text = binding.etOrbTaskInput.text.toString().trim()
+            if (text.isNotBlank()) {
+                addTypedTaskFromOrb(text)
+            }
+        }
+
+        // Keyboard Done action on Quick Add EditText
+        binding.etOrbTaskInput.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_DONE) {
+                val text = binding.etOrbTaskInput.text.toString().trim()
+                if (text.isNotBlank()) {
+                    addTypedTaskFromOrb(text)
+                }
+                true
+            } else false
+        }
+
+        // Push-to-Talk Mic Button in Expanded View
         binding.btnOrbMic.setOnClickListener {
             if (!isRecording) {
                 startVoiceCaptureFromOrb()
@@ -115,6 +138,7 @@ class OrbViewController(
 
         when (newState) {
             OrbState.IDLE -> {
+                hideKeyboard(binding.etOrbTaskInput)
                 binding.layoutIdleOrb.visibility = View.VISIBLE
                 binding.layoutCompact.visibility = View.GONE
                 binding.layoutExpanded.visibility = View.GONE
@@ -129,6 +153,7 @@ class OrbViewController(
             }
 
             OrbState.COMPACT -> {
+                hideKeyboard(binding.etOrbTaskInput)
                 binding.layoutIdleOrb.visibility = View.GONE
                 binding.layoutCompact.visibility = View.VISIBLE
                 binding.layoutExpanded.visibility = View.GONE
@@ -158,7 +183,8 @@ class OrbViewController(
 
                 layoutParams.width = WindowManager.LayoutParams.WRAP_CONTENT
                 layoutParams.height = WindowManager.LayoutParams.WRAP_CONTENT
-                layoutParams.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                // Allow focus so software keyboard can be opened for quick-add input
+                layoutParams.flags = WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
                 safeUpdateLayout()
 
                 pulseAnimator?.pause()
@@ -241,23 +267,27 @@ class OrbViewController(
 
     private fun handleVoiceTranscript(rawText: String) {
         val parsed = DateParser.parse(rawText)
-        val userId = SupabaseManager.currentUserId
-
-        if (userId == null) {
-            binding.tvOrbVoiceFeedback.visibility = View.VISIBLE
-            binding.tvOrbVoiceFeedback.text = "Please log in first"
-            if (currentState == OrbState.COMPACT) transitionTo(OrbState.IDLE)
-            return
-        }
-
-        val item = Item(
-            userId = userId,
-            content = parsed.cleanContent,
-            dueAt = parsed.dueAtIso,
-            sourceDevice = "android"
-        )
 
         serviceScope.launch {
+            SupabaseManager.awaitAuthReady()
+            val userId = SupabaseManager.currentUserId
+
+            if (userId == null) {
+                withContext(Dispatchers.Main) {
+                    binding.tvOrbVoiceFeedback.visibility = View.VISIBLE
+                    binding.tvOrbVoiceFeedback.text = "Please log in first"
+                    if (currentState == OrbState.COMPACT) transitionTo(OrbState.IDLE)
+                }
+                return@launch
+            }
+
+            val item = Item(
+                userId = userId,
+                content = parsed.cleanContent,
+                dueAt = parsed.dueAtIso,
+                sourceDevice = "android"
+            )
+
             val result = SupabaseManager.insertItem(item)
             withContext(Dispatchers.Main) {
                 result.onSuccess {
@@ -284,15 +314,63 @@ class OrbViewController(
         }
     }
 
+    private fun addTypedTaskFromOrb(text: String) {
+        val parsed = DateParser.parse(text)
+        serviceScope.launch {
+            SupabaseManager.awaitAuthReady()
+            val userId = SupabaseManager.currentUserId
+
+            if (userId == null) {
+                withContext(Dispatchers.Main) {
+                    binding.tvOrbVoiceFeedback.visibility = View.VISIBLE
+                    binding.tvOrbVoiceFeedback.text = "Please log in first"
+                }
+                return@launch
+            }
+
+            val item = Item(
+                userId = userId,
+                content = parsed.cleanContent,
+                dueAt = parsed.dueAtIso,
+                sourceDevice = "android"
+            )
+
+            val result = SupabaseManager.insertItem(item)
+            withContext(Dispatchers.Main) {
+                result.onSuccess {
+                    binding.etOrbTaskInput.text.clear()
+                    hideKeyboard(binding.etOrbTaskInput)
+                    binding.tvOrbVoiceFeedback.visibility = View.VISIBLE
+                    binding.tvOrbVoiceFeedback.text = "✓ Added: \"${parsed.cleanContent}\""
+                    refreshSnapshotTasks()
+                }.onFailure { err ->
+                    binding.tvOrbVoiceFeedback.visibility = View.VISIBLE
+                    binding.tvOrbVoiceFeedback.text = "Error: ${err.message}"
+                }
+            }
+        }
+    }
+
     /**
      * Refreshes upcoming tasks snapshot in the Expanded panel.
      */
     fun refreshSnapshotTasks() {
         serviceScope.launch {
+            SupabaseManager.awaitAuthReady()
             val result = SupabaseManager.getItems()
             withContext(Dispatchers.Main) {
                 result.onSuccess { items ->
                     populateSnapshotTasks(items)
+                }.onFailure { err ->
+                    val container = binding.snapshotTasksContainer
+                    container.removeAllViews()
+                    val errorTv = TextView(themedContext).apply {
+                        text = "Unable to load tasks: ${err.localizedMessage ?: "Sync error"}"
+                        setTextColor(themedContext.getColor(R.color.wisp_warning))
+                        textSize = 12f
+                        setPadding(0, 12, 0, 12)
+                    }
+                    container.addView(errorTv)
                 }
             }
         }
@@ -302,34 +380,82 @@ class OrbViewController(
         val container = binding.snapshotTasksContainer
         container.removeAllViews()
 
-        val activeItems = items.filter { !it.completed }.take(4)
+        // Active upcoming tasks (priority sorted)
+        val activeItems = FilterManager.sort(items.filter { !it.completed }, ViewFilter.PRIORITY).take(3)
+        // Recently completed tasks (completed today/yesterday)
+        val recentCompleted = items.filter { it.completed && FilterManager.isCompletedRecently(it) }.take(2)
+        val displayItems = activeItems + recentCompleted
 
-        if (activeItems.isEmpty()) {
+        if (displayItems.isEmpty()) {
             val emptyTv = TextView(themedContext).apply {
                 text = "No upcoming tasks. Speak or tap to add!"
                 setTextColor(themedContext.getColor(R.color.wisp_text_secondary))
                 textSize = 13f
-                setPadding(0, 16, 0, 16)
+                setPadding(0, 14, 0, 14)
             }
             container.addView(emptyTv)
             return
         }
 
         val inflater = LayoutInflater.from(themedContext)
-        for (item in activeItems) {
+        for (item in displayItems) {
             val row = inflater.inflate(R.layout.item_orb_snapshot_task, container, false)
+            val tvIndicator = row.findViewById<TextView>(R.id.tvTaskIndicator)
             val tvContent = row.findViewById<TextView>(R.id.tvTaskContent)
             val tvDue = row.findViewById<TextView>(R.id.tvTaskDue)
 
             tvContent.text = item.content
-            if (!item.dueAt.isNullOrBlank()) {
+            if (item.completed) {
+                tvIndicator.text = "✓"
+                tvIndicator.setTextColor(themedContext.getColor(R.color.wisp_success))
+                tvContent.paintFlags = tvContent.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
+                tvContent.setTextColor(themedContext.getColor(R.color.wisp_text_secondary))
+            } else {
+                tvIndicator.text = "○"
+                tvIndicator.setTextColor(themedContext.getColor(R.color.wisp_accent))
+                tvContent.paintFlags = tvContent.paintFlags and Paint.STRIKE_THRU_TEXT_FLAG.inv()
+                tvContent.setTextColor(themedContext.getColor(R.color.wisp_text_primary))
+            }
+
+            if (!item.dueAt.isNullOrBlank() && !item.completed) {
                 tvDue.visibility = View.VISIBLE
                 tvDue.text = item.dueAt.substringBefore("T")
             } else {
                 tvDue.visibility = View.GONE
             }
+
+            // Quick toggle completion on tap from the snapshot
+            row.setOnClickListener {
+                toggleTaskCompletion(item)
+            }
+
             container.addView(row)
         }
+    }
+
+    private fun toggleTaskCompletion(item: Item) {
+        val itemId = item.id ?: return
+        val newCompleted = !item.completed
+        val completedAt = if (newCompleted) Instant.now().toString() else null
+
+        serviceScope.launch {
+            val result = SupabaseManager.updateItemCompletion(itemId, newCompleted, completedAt)
+            withContext(Dispatchers.Main) {
+                result.onSuccess {
+                    if (newCompleted) {
+                        ttsManager?.speakConfirmation("Marked done")
+                    } else {
+                        ttsManager?.speakConfirmation("Restored")
+                    }
+                    refreshSnapshotTasks()
+                }
+            }
+        }
+    }
+
+    private fun hideKeyboard(view: View) {
+        val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+        imm?.hideSoftInputFromWindow(view.windowToken, 0)
     }
 
     /**
@@ -348,6 +474,7 @@ class OrbViewController(
     }
 
     fun destroy() {
+        hideKeyboard(binding.etOrbTaskInput)
         pulseAnimator?.cancel()
         listeningAnimator?.cancel()
         voiceCaptureManager?.destroy()

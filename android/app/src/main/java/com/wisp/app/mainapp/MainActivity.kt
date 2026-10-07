@@ -61,12 +61,6 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Ensure user is authenticated
-        if (!SupabaseManager.isAuthenticated) {
-            navigateToLogin()
-            return
-        }
-
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -78,9 +72,16 @@ class MainActivity : AppCompatActivity() {
         setupAccountMenu()
         setupOrbControls()
 
-        // Load saved view preference and items
-        val userId = SupabaseManager.currentUserId ?: ""
+        // Asynchronously await persistent session readiness to prevent false logouts
         lifecycleScope.launch {
+            val isAuth = SupabaseManager.awaitAuthReady()
+            if (!isAuth) {
+                navigateToLogin()
+                return@launch
+            }
+
+            // Load saved view preference and items
+            val userId = SupabaseManager.currentUserId ?: ""
             val savedFilter = FilterManager.loadSavedPreference(userId)
             applyFilterToChips(savedFilter)
             fetchItems()

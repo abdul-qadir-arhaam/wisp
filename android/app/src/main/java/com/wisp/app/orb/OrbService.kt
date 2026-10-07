@@ -124,8 +124,11 @@ class OrbService : Service() {
             }
         )
 
-        rootView.setOnTouchListener(touchHandler)
+        // Attach touchHandler ONLY to layoutIdleOrb (and compact bubble), NOT to rootView.
+        // Attaching it to rootView steals all clicks from child views (btnOrbMic, task items, etc.)
+        // in layoutExpanded and immediately collapses the orb.
         viewController?.binding?.layoutIdleOrb?.setOnTouchListener(touchHandler)
+        viewController?.binding?.layoutCompact?.setOnTouchListener(touchHandler)
 
         try {
             if (!rootView.isAttachedToWindow) {

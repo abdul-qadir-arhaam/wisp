@@ -126,16 +126,54 @@
                 android:textSize="13sp" />
         </LinearLayout>
 
+        <!-- Quick Add Task Input & Button -->
+        <LinearLayout
+            android:id="@+id/layoutOrbQuickAdd"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <EditText
+                android:id="@+id/etOrbTaskInput"
+                android:layout_width="0dp"
+                android:layout_height="42dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_input_field"
+                android:hint="Quick add a task..."
+                android:imeOptions="actionDone"
+                android:inputType="textCapSentences"
+                android:paddingHorizontal="12dp"
+                android:textColor="@color/wisp_text_primary"
+                android:textColorHint="@color/wisp_text_secondary"
+                android:textSize="13sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnOrbAddTask"
+                android:layout_width="wrap_content"
+                android:layout_height="42dp"
+                android:layout_marginStart="6dp"
+                android:backgroundTint="@color/wisp_accent"
+                android:minWidth="0dp"
+                android:paddingHorizontal="14dp"
+                android:text="Add"
+                android:textColor="@color/wisp_background"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                app:cornerRadius="10dp" />
+        </LinearLayout>
+
         <!-- Primary Action: Push-to-Talk Mic Button -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnOrbMic"
             android:layout_width="match_parent"
-            android:layout_height="52dp"
-            android:layout_marginTop="14dp"
+            android:layout_height="50dp"
+            android:layout_marginTop="10dp"
             android:backgroundTint="@color/wisp_accent"
             android:text="🎤 Tap to Speak"
             android:textColor="@color/wisp_background"
-            android:textSize="15sp"
+            android:textSize="14.5sp"
             android:textStyle="bold"
             app:cornerRadius="14dp" />
 

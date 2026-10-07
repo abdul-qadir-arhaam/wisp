@@ -23,16 +23,17 @@ class LoginActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // If already authenticated, proceed to MainActivity immediately
-        if (SupabaseManager.isAuthenticated) {
-            proceedToMain()
-            return
-        }
-
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         setupUI()
+
+        // Check if a saved session exists on disk or completes loading
+        lifecycleScope.launch {
+            if (SupabaseManager.awaitAuthReady()) {
+                proceedToMain()
+            }
+        }
     }
 
     private fun setupUI() {
